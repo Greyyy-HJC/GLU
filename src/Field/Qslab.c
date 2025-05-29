@@ -28,8 +28,10 @@ Copyright 2013-2025 Renwick James Hudspith
 #include "plan_ffts.h"  // config space correlator is convolution
 #include "str_stuff.h"  // append_char()
 
+#define QSLAB_TONLY
+
 // local version of the one in geometry
-static void
+static inline void
 get_mom_2piBZ_slab( int x[ ND ] ,
 		    const size_t Dims[ ND ] ,
 		    const size_t i ,
@@ -50,7 +52,7 @@ get_mom_2piBZ_slab( int x[ ND ] ,
 
 // given a local SLAB site index return the global index taking
 // into account for the translational invariance term T0
-static size_t
+static inline size_t
 slab_idx( const size_t i ,
 	  const size_t slab_dims[ ND ] ,
 	  const size_t SLAB_DIR ,
@@ -75,7 +77,6 @@ compute_slabs( const GLU_complex *qtop ,
   
   // various sums and things
   register double sum = 0.0 ;
-  size_t T0 , T1 , i , mu ;
 
   // set up the outputs
   char *str = output_str_struct( CUTINFO ) ;
@@ -94,18 +95,19 @@ compute_slabs( const GLU_complex *qtop ,
   write_tslice_list( Ap , lt ) ;
 
   // compute the normal topological susceptibility
-  for( i = 0 ; i < LVOLUME ; i++ ) {
+  for( size_t i = 0 ; i < LVOLUME ; i++ ) {
     sum += creal( qtop[i] ) ;
   }
   fprintf( stdout , "\n[QTOP] Q %zu %1.12e %1.12e \n" ,
 	   measurement , sum * NORM , sum * sum * NORMSQ ) ;
 
   // compute the slab definition
+  size_t T1 = 0 ;
+#pragma omp parallel for private(T1)
   for( T1 = 1 ; T1 <= Latt.dims[ SLAB_DIR ] ; T1++ ) {
-
     // set the dimensions of the slab
     size_t dims[ ND ] , subvol = 1 ;
-    for( mu = 0 ; mu < ND ; mu++ ) {
+    for( size_t mu = 0 ; mu < ND ; mu++ ) {
       if( mu == SLAB_DIR ) {
 	dims[ mu ] = T1 ;
       } else {
@@ -113,66 +115,17 @@ compute_slabs( const GLU_complex *qtop ,
       }
       subvol *= dims[ mu ] ;
     }
-
-#ifdef HAVE_FFTW3_H
-
-    #ifdef verbose
-    printf( "DIMS :: %zu %zu %zu %zu -> %zu \n" ,
-	    dims[0] , dims[1] , dims[2] , dims[3] , subvol ) ;
-    #endif
-
-    struct fftw_small_stuff FFTW ;
-    small_create_plans_DFT( &FFTW , dims , ND ) ;
-    
-#endif
-
     double tsum = 0.0 ;
     // sum over all possible time cuts
-    for( T0 = 0 ; T0 < Latt.dims[ SLAB_DIR ] ; T0++ ) {
-
-      double sum_slab = 0.0 ;
-      // perform convolution using FFTW
-      #ifdef HAVE_FFTW3_H
-      #pragma omp parallel for private(i)
-      for( i = 0 ; i < subvol ; i++ ) {
+    for( size_t T0 = 0 ; T0 < Latt.dims[ SLAB_DIR ] ; T0++ ) {
+      // test new idea
+      double sumtmp = 0. ;
+      for( size_t i = 0 ; i < subvol ; i++ ) {
 	const size_t src = slab_idx( i , dims , SLAB_DIR , T0 ) ;
-	FFTW.in[ i ] = qtop[ src ] ; 
+        sumtmp += qtop[ src ] ; 
       }
-      fftw_execute( FFTW.forward ) ;
-      #pragma omp parallel for private(i)
-      for( i = 0 ; i < subvol ; i++ ) {
-	FFTW.out[ i ] *= conj( FFTW.out[i] ) ;
-      }
-      fftw_execute( FFTW.backward ) ;
-
-      for( i = 0 ; i < subvol ; i++ ) {
-	sum_slab += creal( FFTW.in[ i ] ) ;
-      }
-      // perform convolution the dumb way
-      #else
-      #pragma omp parallel for private(i)
-      for( i = 0 ; i < subvol ; i++ ) {
-	const size_t src = slab_idx( i , dims , SLAB_DIR , T0 ) ;
-	const double qsrc = qtop[ src ] ;
-	size_t j ;
-	for( j = 0 ; j < subvol ; j++ ) {
-	  const size_t snk = slab_idx( j , dims , SLAB_DIR , T0 ) ;
-	  sum_slab += creal ( qsrc * qtop[ snk ] ) ;
-	}
-      }
-      #endif
-      tsum += sum_slab ;
+      tsum += sumtmp*sumtmp ;
     }
-
-#ifdef HAVE_FFTW3_H
-    
-    // do the usual convolution norm
-    tsum /= ( subvol ) ;
-
-    // cleanup and memory deallocate
-    small_clean_up_fftw( FFTW ) ;
-#endif
-
     ct[ T1-1 ] = tsum * NORMSQ / Latt.dims[ SLAB_DIR ] ;
   }
 
@@ -208,7 +161,11 @@ compute_Qsusc( struct site *lat ,
 
   // slabby slab slab
   size_t mu ;
+#ifdef TONLY
+  for( mu = ND-1 ; mu < ND ; mu++ ) {
+#else
   for( mu = 0 ; mu < ND ; mu++ ) {
+#endif
     compute_slabs( qtop , CUTINFO , mu , measurement ) ;
   }
   
@@ -216,3 +173,7 @@ compute_Qsusc( struct site *lat ,
   
   return GLU_SUCCESS ;
 }
+
+#ifdef QSLAB_TONLY
+  #undef QSLAB_TONLY
+#endif

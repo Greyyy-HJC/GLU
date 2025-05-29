@@ -53,13 +53,6 @@ compute_Qsusc_step( struct site *__restrict lat ,
     }
   }
 
-  // compute the topological correlator in r and the temporal correlator
-  if( CUTINFO.dir == TOPOLOGICAL_SUSCEPTIBILITY ) {
-    if( compute_Qsusc( lat , CUTINFO , 0 ) == GLU_FAILURE ) {
-      flag = GLU_FAILURE ; goto memfree ;
-    }
-  }
-
   // perform some measurements each stepping smiters ahead
   for( measurement = 1 ; measurement < CUTINFO.max_t ; measurement++ ) {
 
