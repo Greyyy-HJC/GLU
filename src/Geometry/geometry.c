@@ -185,6 +185,22 @@ gen_p_sq( const size_t i ,
   }
 }
 
+// returns the interpolating-gauge weighted p^2
+GLU_real
+gen_p_sq_weighted( const size_t i ,
+		   const double eps )
+{
+  int n[ ND ] ;
+  GLU_real p_sq = 0. ;
+  size_t mu ;
+  get_mom_2piBZ( n , i , ND ) ;
+  for( mu = 0 ; mu < ND ; mu++ ) {
+    const GLU_real weight = ( mu == ND - 1 ) ? eps : 1.0 ;
+    p_sq += weight * 2.0 * ( 1.0 - cos( n[mu] * Latt.twiddles[mu] ) ) ;
+  }
+  return ( p_sq == 0.0 ) ? 1.0 : p_sq ;
+}
+
 // feynman gauge psq thing
 GLU_real 
 gen_p_sq_feyn( const size_t i , 

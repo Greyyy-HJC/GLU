@@ -26,11 +26,12 @@ Copyright 2013-2025 Renwick James Hudspith
 
 // log definition of the gauge matrices at the point i
 double
-log_deriv( GLU_complex sum[ HERMSIZE ] , 
-	   double *functional ,
-	   const struct site *__restrict lat , 
-	   const size_t i , 
-	   const size_t MAX_DIR )
+log_deriv_weighted( GLU_complex sum[ HERMSIZE ] ,
+		    double *functional ,
+		    const struct site *__restrict lat ,
+		    const size_t i ,
+		    const size_t MAX_DIR ,
+		    const double eps )
 {
   GLU_complex A[ HERMSIZE ] , shiftA[ HERMSIZE ] ;
   GLU_real trAA ;
@@ -38,13 +39,25 @@ log_deriv( GLU_complex sum[ HERMSIZE ] ,
 
   size_t mu ; 
   for( mu = 0 ; mu < MAX_DIR ; mu++ ) {
+    const double weight = ( mu == ND - 1 ) ? eps : 1.0 ;
     exact_log_slow_short( A , lat[i].O[mu] ) ; 
     exact_log_slow_short( shiftA , lat[lat[i].back[mu]].O[mu] ) ; 
-    a_plus_Sxbminc_short( sum , 1.0 , shiftA , A ) ;
+    a_plus_Sxbminc_short( sum , weight , shiftA , A ) ;
 
     // compute the functional in-step to remove a log
     trace_ab_herm_short( &trAA , A , A ) ;
-    *functional += (double)trAA ;
+    *functional += weight * (double)trAA ;
   }
   return trace_deriv( sum ) ; 
+}
+
+// log definition of the gauge matrices at the point i
+double
+log_deriv( GLU_complex sum[ HERMSIZE ] , 
+	   double *functional ,
+	   const struct site *__restrict lat , 
+	   const size_t i , 
+	   const size_t MAX_DIR )
+{
+  return log_deriv_weighted( sum , functional , lat , i , MAX_DIR , 1.0 ) ;
 }

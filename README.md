@@ -90,3 +90,51 @@ Input File
 ==========
 
 The input file expects a very specific format and even though you might not be using the gluon props, smearing, gauge-fixing, heatbath, whatever ... they still need to be there or the very simple reader will complain. Don't worry though, if they aren't used in your specific calculation they will just be ignored. 
+
+Local gauge-fixing extension
+============================
+
+This repository includes an interpolating gauge-fixing mode in addition to the
+upstream Coulomb and Landau gauges. It is selected with
+
+    GFTYPE = INTERPOLATING
+        GF_TUNE = 0.09
+        GF_EPSILON = 0.5
+        ACCURACY = 14
+        MAX_ITERS = 6000
+
+`GF_EPSILON` weights the temporal derivative term in the Landau-like gauge
+condition. `GF_EPSILON = 1` gives the Landau gauge condition, while
+`GF_EPSILON = 0` removes the temporal derivative term and gives the
+Coulomb-like spatial condition in the same global solver path.
+
+An example template can be generated with
+
+    ./GLU --autoin=INTERPOLATING
+
+Local build and smoke test
+==========================
+
+A typical local build from the repository root is
+
+    ./configure --prefix=$PWD/local CFLAGS="-O2 -fopenmp" --with-fftw=
+    make
+    make install
+
+If FFTW is unavailable on the machine, omit `--with-fftw=` and rebuild without
+Fourier acceleration.
+
+For a quick gauge-fixing check using the bundled S8T32 configuration, adapt the
+benchmark input from `/home/jinchen/git/lat-software/LatCoding/glu/benchmark/input_S8T32.txt`
+by setting `GFTYPE = INTERPOLATING` and adding `GF_EPSILON`, then run for
+example
+
+    ./local/bin/GLU -i input_S8T32_interpolating.txt -c CONF/S8T32_wilson_b6.0 -o local/S8T32_wilson_b6.0.interp
+
+Keep generated outputs under local build or artifact directories rather than
+overwriting the original configuration.
+
+License
+=======
+
+GLU is distributed under the GNU General Public License; see `COPYING`.

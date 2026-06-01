@@ -42,4 +42,16 @@ log_deriv( GLU_complex sum[ HERMSIZE ] ,
 	   const size_t i , 
 	   const size_t MAX_DIR ) ;
 
+/**
+   @fn double log_deriv_weighted( GLU_complex sum[ HERMSIZE ] , double *functional , const struct site *__restrict lat , const size_t i , const size_t MAX_DIR , const double eps )
+   @brief The logarithmic lattice derivative with temporal contribution weighted by epsilon.
+ **/
+double
+log_deriv_weighted( GLU_complex sum[ HERMSIZE ] ,
+		    double *functional ,
+		    const struct site *__restrict lat ,
+		    const size_t i ,
+		    const size_t MAX_DIR ,
+		    const double eps ) ;
+
 #endif

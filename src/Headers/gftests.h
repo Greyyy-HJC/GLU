@@ -57,6 +57,14 @@ double
 gauge_functional( const struct site *__restrict lat ) ;
 
 /**
+   @fn double gauge_functional_weighted( const struct site *__restrict lat , const double eps )
+   @brief computes the gauge fixing functional with temporal links weighted by epsilon.
+ */
+double
+gauge_functional_weighted( const struct site *__restrict lat ,
+			   const double eps ) ;
+
+/**
    @fn double gauge_test( const GLU_complex *__restrict *__restrict gauge )
    @brief Checks how close to unity our gauge transformation matrices are
 
@@ -109,6 +117,16 @@ theta_test_lin( const struct site *__restrict lat ,
 		const size_t MAX_DIR ) ;
 
 /**
+   @fn double theta_test_lin_weighted( const struct site *__restrict lat , GLU_real *max , const size_t MAX_DIR , const double eps )
+   @brief Checks the weighted derivative of the AntiHermitian_proj definition of the lie fields.
+ */
+double
+theta_test_lin_weighted( const struct site *__restrict lat ,
+			 GLU_real *max ,
+			 const size_t MAX_DIR ,
+			 const double eps ) ;
+
+/**
    @fn double theta_test_log( const struct site *__restrict lat , GLU_real *max , const size_t MAX_DIR )
    @brief Checks the derivative of the exact log definition of the lie fields
    
@@ -128,5 +146,15 @@ double
 theta_test_log( const struct site *__restrict lat , 
 		GLU_real *max ,
 		const size_t MAX_DIR ) ;
+
+/**
+   @fn double theta_test_log_weighted( const struct site *__restrict lat , GLU_real *max , const size_t MAX_DIR , const double eps )
+   @brief Checks the weighted derivative of the exact log definition of the lie fields.
+ */
+double
+theta_test_log_weighted( const struct site *__restrict lat ,
+			 GLU_real *max ,
+			 const size_t MAX_DIR ,
+			 const double eps ) ;
 
 #endif

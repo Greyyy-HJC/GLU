@@ -117,6 +117,14 @@ gen_p_sq( const size_t i ,
 	  const size_t DIMS ) ;
 
 /**
+   @fn GLU_real gen_p_sq_weighted( const size_t i , const double eps )
+   @brief Returns p_spatial^2 + epsilon p_temporal^2 for interpolating gauge fixing.
+ **/
+GLU_real
+gen_p_sq_weighted( const size_t i ,
+		   const double eps ) ;
+
+/**
    @fn GLU_real gen_p_sq_imp( const size_t i , const size_t DIMS )
    @brief Returns the momentum-squared of the site using the momentum definition for links:
    @param i :: lattice index

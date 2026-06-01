@@ -42,7 +42,8 @@ Copyright 2013-2025 Renwick James Hudspith
 static void
 output_fixing_info( struct site *lat ,
 		    const double theta ,
-		    const size_t iters )
+		    const size_t iters ,
+		    const double eps )
 {
   // reunitarise just to limit the damage from round-off
   latt_reunitU( lat ) ;
@@ -58,8 +59,9 @@ output_fixing_info( struct site *lat ,
   double lin , log ;
   const_time( lat , &lin , &log ) ; 
   printf( "[GF] Temporal constance || Lin %e || Log %e \n" , lin , log ) ;
-  gauge_functional( lat ) ;
-  printf( "[GF] Functional :: %1.15f\n" , gauge_functional( lat ) ) ;
+  gauge_functional_weighted( lat , eps ) ;
+  printf( "[GF] Functional :: %1.15f\n" ,
+	  gauge_functional_weighted( lat , eps ) ) ;
 
   ///////////////////////////////////////////////////////////////
   return ;
@@ -93,7 +95,8 @@ luxury_copy_fast( struct site *lat ,
 		  struct fftw_stuff *FFTW ,
 		  double *tr ,
 		  const double acc ,
-		  const size_t max_iters ) 
+		  const size_t max_iters ,
+		  const double eps ) 
 {
   size_t i , iters = 0 , copies ;
 
@@ -141,13 +144,13 @@ luxury_copy_fast( struct site *lat ,
     const double tempacc = 1E-6 ;
     const double max = 1000 ;
     #ifdef GLU_GFIX_SD
-    iters = FASD( lat_copy , FFTW , tr , tempacc , max ) ; 
+    iters = FASD( lat_copy , FFTW , tr , tempacc , max , eps ) ;
     #else
-    iters = FACG( lat_copy , FFTW , tr , tempacc , max ) ; 
+    iters = FACG( lat_copy , FFTW , tr , tempacc , max , eps ) ;
     #endif
     
     // compute the link , wrap this to the functional?
-    newlink = gauge_functional( lat_copy ) ;
+    newlink = gauge_functional_weighted( lat_copy , eps ) ;
     fprintf( stdout , "  [COPY] %zu [FUNCTIONAL] %1.15f [ITER] %zu " , 
 	     copies , newlink , iters ) ; 
     #ifdef BEST_COPY 
@@ -185,9 +188,9 @@ luxury_copy_fast( struct site *lat ,
   
   // final convergence run god I hope this one doesn't fail! Pretty unlikely
   #ifdef GLU_GFIX_SD
-  iters += FASD( lat , FFTW , tr , acc , max_iters ) ; 
+  iters += FASD( lat , FFTW , tr , acc , max_iters , eps ) ;
   #else
-  iters += FACG( lat , FFTW , tr , acc , max_iters ) ; 
+  iters += FACG( lat , FFTW , tr , acc , max_iters , eps ) ;
   #endif
   
   printf( "FINISHED\n" ) ;
@@ -218,7 +221,8 @@ static size_t
 		   struct fftw_stuff *FFTW ,
 		   double *tr ,
 		   const double acc ,
-		   const size_t max_iters ) ;
+		   const size_t max_iters ,
+		   const double eps ) ;
 
 // callback selector
 static void
@@ -261,7 +265,8 @@ size_t
 Landau( struct site *lat ,
 	const double accuracy ,
 	const size_t max_iter ,
-	const char *infile )
+	const char *infile ,
+	const double eps )
 {
   double theta = 0. ; 
   size_t i ;
@@ -279,7 +284,9 @@ Landau( struct site *lat ,
   {
     #pragma omp for private(i)
     for(  i = 0 ; i < LVOLUME ; i++  ) {
-      FFTW.psq[i] = MAX_LANDAU / ( gen_p_sq( i , ND )  ) ; 
+      const double max_psq = 4.0 * ( (double)ND - 1.0 + eps ) /
+	(double)LVOLUME ;
+      FFTW.psq[i] = max_psq / ( gen_p_sq_weighted( i , eps ) ) ;
     }
   }
   
@@ -298,7 +305,8 @@ Landau( struct site *lat ,
   // set up the FA method callback
   select_callback( )  ;
 
-  size_t iters = FA_callback( lat , &FFTW , &theta , accuracy , max_iter ) ;
+  size_t iters = FA_callback( lat , &FFTW , &theta , accuracy , max_iter ,
+			      eps ) ;
 
   // random restart portion of the code
   size_t failure = 0 ; 
@@ -326,7 +334,8 @@ Landau( struct site *lat ,
 	goto MemFree ; 
       }
       // and the callback
-      iters_loc = FA_callback( lat , &FFTW , &theta , accuracy , max_iter ) ;
+      iters_loc = FA_callback( lat , &FFTW , &theta , accuracy , max_iter ,
+			       eps ) ;
 
       // if we succeed we break the loop
       if( iters_loc != 123456789 ) {
@@ -367,7 +376,7 @@ Landau( struct site *lat ,
 	    "[GF] Please lower the GF_TUNE parameter from %g \n" , Latt.gf_alpha ) ;
     return GLU_FAILURE ;
   } else {
-    output_fixing_info( lat , theta , iters ) ;
+    output_fixing_info( lat , theta , iters , eps ) ;
   }
 
   return iters ; 

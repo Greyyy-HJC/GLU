@@ -443,6 +443,7 @@ read_cuts_struct( struct cut_info *CUTINFO )
 static int
 read_gf_struct ( struct gf_info *GFINFO )
 {
+  GFINFO -> gf_epsilon = 1.0 ;
   // look at what seed type we are going to use
   {
     const int gf_idx = tag_search( "GFTYPE" ) ;
@@ -453,6 +454,8 @@ read_gf_struct ( struct gf_info *GFINFO )
       GFINFO -> type = GLU_COULOMB_FIX ;
     } else if ( are_equal( INPUT[gf_idx].VALUE , "COULOMB_RESIDUAL" ) ) {
       GFINFO -> type = GLU_COULOMB_RESIDUAL_FIX ;
+    } else if( are_equal( INPUT[gf_idx].VALUE , "INTERPOLATING" ) ) {
+      GFINFO -> type = GLU_INTERPOLATING_FIX ;
     } else if( are_equal( INPUT[gf_idx].VALUE , "LANDAU" ) ) { 
       GFINFO -> type = GLU_LANDAU_FIX ;
     } else if ( are_equal( INPUT[gf_idx].VALUE , "MAG" ) ) {
@@ -476,6 +479,16 @@ read_gf_struct ( struct gf_info *GFINFO )
   if( setdbl( &Latt.gf_alpha , "GF_TUNE" ) == GLU_FAILURE ) {
     printf( "Failure \n" ) ;
     return GLU_FAILURE ;
+  }
+  if( GFINFO -> type == GLU_INTERPOLATING_FIX ) {
+    if( setdbl( &( GFINFO -> gf_epsilon ) , "GF_EPSILON" ) == GLU_FAILURE ) {
+      return GLU_FAILURE ;
+    }
+    if( GFINFO -> gf_epsilon < 0.0 || GFINFO -> gf_epsilon > 1.0 ) {
+      fprintf( stderr , "[IO] GF_EPSILON must be in [0,1], received %g\n" ,
+	       GFINFO -> gf_epsilon ) ;
+      return GLU_FAILURE ;
+    }
   }
   return GLU_SUCCESS ;
 }

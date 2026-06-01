@@ -112,6 +112,7 @@ typedef enum
     GLU_AXIALT_FIX ,
     GLU_COULOMB_FIX ,
     GLU_COULOMB_RESIDUAL_FIX ,
+    GLU_INTERPOLATING_FIX ,
     GLU_LANDAU_FIX ,
     GLU_MAG_FIX } GLU_fixing ;
 

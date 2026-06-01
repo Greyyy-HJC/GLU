@@ -75,7 +75,8 @@ GF_wrap_landau( struct site *lat ,
 		    GFINFO.accuracy , Latt.gf_alpha ) ;
 #else
   // the memory cheap one wasn't much of a saving so we just use the fast
-  iters = Landau( lat , GFINFO.accuracy , GFINFO.max_iters , infile ) ;
+  iters = Landau( lat , GFINFO.accuracy , GFINFO.max_iters , infile ,
+		  GFINFO.gf_epsilon ) ;
 #endif
   print_time( ) ;
   return iters ;
@@ -120,6 +121,12 @@ print_fixing_info( const struct gf_info GFINFO )
   case GLU_COULOMB_RESIDUAL_FIX :
     fprintf( stdout , "[GF] Coulomb gauge accuracy %g & fixing residual\n" ,
 	     GFINFO.accuracy ) ; 
+    break ;
+  case GLU_INTERPOLATING_FIX :
+    fprintf( stdout , "[GF] Interpolating gauge, accuracy of %g \n" ,
+	     GFINFO.accuracy ) ;
+    fprintf( stdout , "[GF] Interpolating temporal epsilon :: %g \n" ,
+	     GFINFO.gf_epsilon ) ;
     break ;
   case GLU_LANDAU_FIX :
     fprintf( stdout , "[GF] Landau gauge, accuracy of %g \n" ,
@@ -200,6 +207,8 @@ GF_wrap( const char *infile ,
     residual_fix( lat ) ;
     output_information( lat ) ;
     return GLU_SUCCESS ;
+  case GLU_INTERPOLATING_FIX :
+    return GF_wrap_landau( lat , infile , GFINFO ) ;
   case GLU_LANDAU_FIX :
     return GF_wrap_landau( lat , infile , GFINFO ) ;
   case GLU_MAG_FIX :

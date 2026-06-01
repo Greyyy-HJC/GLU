@@ -44,6 +44,9 @@ create_input_file( const char *mode_str ,
 	   "    IMPROVEMENTS = NONE\n" 
 	   "    ACCURACY = 14\n"
 	   "    MAX_ITERS = 1000\n" ) ;
+  if( are_equal( gf_str , "INTERPOLATING" ) ) {
+    fprintf( stdout , "    GF_EPSILON = 0.5\n" ) ;
+  }
   fprintf( stdout , "CUTTYPE = %s\n"
 	   "    FIELD_DEFINITION = LINEAR\n"
 	   "    MOM_CUT = SPHERICAL_CUT\n" 
@@ -173,6 +176,8 @@ gftype_types( void )
 	   "a time-slice by time-slice Cornell method\n" ) ;
   fprintf( stdout , "GFTYPE = LANDAU     - Landau gauge fixing using "
 	   "the Cornell method/or OR depnding on compile flags\n" ) ;
+  fprintf( stdout , "GFTYPE = INTERPOLATING - Landau-like gauge fixing "
+	   "with temporal derivative weighted by GF_EPSILON\n" ) ;
   fprintf( stdout , "GFTYPE = {All ELSE} - Do nothing\n" ) ;
   fprintf( stdout , "\nDepending on what configure flags you have "
 	   "specified these will either be Fourier accelerated or not\n" ) ;
@@ -217,7 +222,7 @@ help_usage( void )
   fprintf( stdout , "\nHelp usage : \n\n./GLU --help={options}\n\n" ) ;
   fprintf( stdout , "The available options are:\n" ) ;
   fprintf( stdout , "MODE, HEADER, DIM , CONFNO, RANDOM_TRANSFORM, \n" ) ;
-  fprintf( stdout , "GFTYPE, GF_TUNE, IMPROVEMENTS, ACCURACY, MAX_ITERS, \n" ) ;
+  fprintf( stdout , "GFTYPE, GF_TUNE, GF_EPSILON, IMPROVEMENTS, ACCURACY, MAX_ITERS, \n" ) ;
   fprintf( stdout , "CUTTYPE, FIELD_DEFINITION, MOM_CUT, MAX_T, MAXMOM, "
 	            "CYL_WIDTH, ANGLE, OUTPUT,\n" ) ;
   fprintf( stdout , "SMEARTYPE, DIRECTION, SMITERS, ALPHA,\n" ) ;
@@ -228,7 +233,7 @@ help_usage( void )
 	  "          ONCE AND ONLY ONCE!\n" ) ;
   fprintf( stdout , "\nIf you would like an example input file, try:\n"
 	   "\n./GLU --autoin={options}\n\n"
-	   "Where options can be COULOMB, LANDAU, STATIC_POTENTIAL, "
+	   "Where options can be COULOMB, INTERPOLATING, LANDAU, STATIC_POTENTIAL, "
 	   "SUNCxU1, TOPOLOGICAL_SUSCEPTIBILITY or WFLOW\n\n" ) ;
   return ;
 }
@@ -403,6 +408,10 @@ GLU_helps_those_who_help_themselves( const char *help_str )
     fprintf( stdout , "GFTUNE = %%lf - User specified tuning parameter for "
 	     "the gauge fixing this should generally be < 0.1, less "
 	     "important for the default CG routines\n" ) ;
+  } else if( are_equal( help_str , "--help=GF_EPSILON" ) ) {
+    fprintf( stdout , "GF_EPSILON = %%lf - Temporal derivative weight for "
+	     "GFTYPE = INTERPOLATING. Use 1 for Landau and 0 for the "
+	     "Coulomb-like spatial condition\n" ) ;
   } else if( are_equal( help_str , "--help=IMPROVEMENTS" ) ) {
     improvement_types( ) ;
   } else if( are_equal( help_str , "--help=ACCURACY" ) ) {
@@ -506,6 +515,9 @@ GLU_helps_those_who_help_themselves( const char *help_str )
   } else if( are_equal( help_str , "--autoin=COULOMB" ) ) {
     create_input_file( "GAUGE_FIXING" , "COULOMB" ,
 		       "TOPOLOGICAL_SUSCEPTIBILITY" ) ;
+  } else if( are_equal( help_str , "--autoin=INTERPOLATING" ) ) {
+    create_input_file( "GAUGE_FIXING" , "INTERPOLATING" ,
+		       "TOPOLOGICAL_SUSCEPTIBILITY" ) ;
   } else if( are_equal( help_str , "--autoin=HEATBATH" ) ) {
     create_input_file( "HEATBATH" , "COULOMB" ,
 		       "TOPOLOGICAL_SUSCEPTIBILITY") ;   
@@ -537,7 +549,7 @@ GLUsage( void )
 	   "./GLU --help={input_file option}\n\n" ) ;
   fprintf( stdout , "To automatically generate a standard input file use:\n\n"
 	   "./GLU --autoin={options}\n"
-	   "\nWhere {options} can be COULOMB, HEATBATH , LANDAU, "
+	   "\nWhere {options} can be COULOMB, HEATBATH, INTERPOLATING, LANDAU, "
 	   "STATIC_POTENTIAL, SUNCxU1, WFLOW\n\n" ) ;
   return fprintf( stdout , "If using the CG gauge fixing, "
 		  "please cite my paper\n"

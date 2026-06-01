@@ -53,28 +53,42 @@ trace_deriv( GLU_complex *__restrict sum )
 
 //lattice deriv is apparently ( AntiHermitian_proj method )
 double
+latt_deriv_AntiHermitian_proj_weighted( GLU_complex sum[ HERMSIZE ] ,
+					const struct site *__restrict lat ,
+					const size_t i ,
+					const size_t MAX_DIR ,
+					const double eps )
+{
+  GLU_complex A[ HERMSIZE ] , shiftA[ HERMSIZE ] ;
+  size_t mu ; 
+  for( mu = 0 ; mu < MAX_DIR ; mu++ ) {
+    const double weight = ( mu == ND - 1 ) ? eps : 1.0 ;
+    Hermitian_proj_short( A , lat[i].O[mu] ) ; 
+    Hermitian_proj_short( shiftA , lat[lat[i].back[mu]].O[mu] ) ; 
+    // and accumulate into sum
+    a_plus_Sxbminc_short( sum , weight , shiftA , A ) ;
+  }
+  return trace_deriv( sum ) ;
+}
+
+//lattice deriv is apparently ( AntiHermitian_proj method )
+double
 latt_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] , 
 			       const struct site *__restrict lat , 
 			       const size_t i , 
 			       const size_t MAX_DIR )
 {
-  GLU_complex A[ HERMSIZE ] , shiftA[ HERMSIZE ] ;
-  size_t mu ; 
-  for( mu = 0 ; mu < MAX_DIR ; mu++ ) {
-    Hermitian_proj_short( A , lat[i].O[mu] ) ; 
-    Hermitian_proj_short( shiftA , lat[lat[i].back[mu]].O[mu] ) ; 
-    // and accumulate into sum
-    a_plus_Sxbminc_short( sum , 1.0 , shiftA , A ) ;
-  }
-  return trace_deriv( sum ) ;
+  return latt_deriv_AntiHermitian_proj_weighted( sum , lat , i , MAX_DIR ,
+						 1.0 ) ;
 }
 
 // will return the local tr( || dA || ) here ! 
 #define VAL 0.4444444444444444
 double
-fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
-			       const struct site *__restrict lat , 
-			       const size_t i )
+fast_deriv_AntiHermitian_proj_weighted( GLU_complex sum[ HERMSIZE ] ,
+					const struct site *__restrict lat ,
+					const size_t i ,
+					const double eps )
 {
 #if NC == 3 
   double REsum0 = 0. , REsum1 = 0. , IMsum1 = 0. , REsum2 = 0. , IMsum2 = 0. ;
@@ -92,12 +106,14 @@ fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
   for( nu = 0 ; nu < HERMSIZE ; nu++ ) {
     sum[ nu ] = 0. ;
   }
-  return latt_deriv_AntiHermitian_proj( sum , lat , i , ND ) ;
+  return latt_deriv_AntiHermitian_proj_weighted( sum , lat , i , ND ,
+						 eps ) ;
 #endif
 
   //calculate the top diagonal for both shift A and A
   size_t mu ;
   for( mu = 0 ; mu < ND ; mu++ ) {
+    const double weight = ( mu == ND - 1 ) ? eps : 1.0 ;
 
 #if NC == 3 
     // cache some stuff in ....
@@ -123,20 +139,20 @@ fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
     shAr7 = *( shqq + 14 ) ; shAi7 = *( shqq + 15 ) ;
     shAi8 = *( shqq + 17 ) ;
 
-    REsum0 += 2 * shAi0 - shAi4 - shAi8 ;
-    REsum0 += -2 * Ai0 + Ai4 + Ai8 ;     
+    REsum0 += weight * ( 2 * shAi0 - shAi4 - shAi8 ) ;
+    REsum0 += weight * ( -2 * Ai0 + Ai4 + Ai8 ) ;
 
-    REsum1 += shAr1 - shAr3 - Ar1 + Ar3 ;
-    IMsum1 += shAi1 + shAi3 - Ai1 - Ai3 ;
+    REsum1 += weight * ( shAr1 - shAr3 - Ar1 + Ar3 ) ;
+    IMsum1 += weight * ( shAi1 + shAi3 - Ai1 - Ai3 ) ;
 
-    REsum2 += shAr2 - shAr6 - Ar2 + Ar6 ;
-    IMsum2 += shAi2 + shAi6 - Ai2 - Ai6 ;
+    REsum2 += weight * ( shAr2 - shAr6 - Ar2 + Ar6 ) ;
+    IMsum2 += weight * ( shAi2 + shAi6 - Ai2 - Ai6 ) ;
 
-    REsum3 += 2 * shAi4 - shAi0 - shAi8 ;
-    REsum3 += -2 * Ai4 + Ai0 + Ai8 ;
+    REsum3 += weight * ( 2 * shAi4 - shAi0 - shAi8 ) ;
+    REsum3 += weight * ( -2 * Ai4 + Ai0 + Ai8 ) ;
 
-    REsum4 += shAr5 - shAr7 - Ar5 + Ar7 ;
-    IMsum4 += shAi5 + shAi7 - Ai5 - Ai7 ;
+    REsum4 += weight * ( shAr5 - shAr7 - Ar5 + Ar7 ) ;
+    IMsum4 += weight * ( shAi5 + shAi7 - Ai5 - Ai7 ) ;
 
 #elif NC == 2
 
@@ -154,15 +170,15 @@ fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
     register const GLU_real tr = 1. / ( 1.0 + Ar0 ) ; 
     register const GLU_real tr_back = 1. / ( 1.0 + shAr0 ) ; 
       
-    REsum0 += tr_back * shAi0 - tr * Ai0 ;  
-    REsum1 += tr_back * shAr1 - tr * Ar1 ; 
-    IMsum1 += tr_back * shAi1 - tr * Ai1 ;
+    REsum0 += weight * ( tr_back * shAi0 - tr * Ai0 ) ;
+    REsum1 += weight * ( tr_back * shAr1 - tr * Ar1 ) ;
+    IMsum1 += weight * ( tr_back * shAi1 - tr * Ai1 ) ;
       
     #else
 
-    REsum0 += shAi0 - Ai0 ;  
-    REsum1 += shAr1 - Ar1 ; 
-    IMsum1 += shAi1 - Ai1 ;
+    REsum0 += weight * ( shAi0 - Ai0 ) ;
+    REsum1 += weight * ( shAr1 - Ar1 ) ;
+    IMsum1 += weight * ( shAi1 - Ai1 ) ;
 
     #endif
 
@@ -190,5 +206,14 @@ fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
   return ( REsum0 * REsum0 + REsum1 * REsum1 + IMsum1 * IMsum1 ) ;
 
 #endif
+}
+
+// will return the local tr( || dA || ) here ! 
+double
+fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
+			       const struct site *__restrict lat , 
+			       const size_t i )
+{
+  return fast_deriv_AntiHermitian_proj_weighted( sum , lat , i , 1.0 ) ;
 }
 #undef VAL

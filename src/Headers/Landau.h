@@ -51,6 +51,7 @@ size_t
 Landau( struct site *lat ,
 	const double accuracy ,
 	const size_t iter ,
-	const char *infile ) ;
+	const char *infile ,
+	const double eps ) ;
 
 #endif

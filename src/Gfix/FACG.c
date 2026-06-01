@@ -37,7 +37,8 @@
 static int
 FA_deriv( double *red ,
 	  GLU_complex **in , 
-	  struct site *lat )
+	  struct site *lat ,
+	  const double eps )
 {
   size_t i ;
   #pragma omp for private(i)
@@ -48,7 +49,7 @@ FA_deriv( double *red ,
 
     const size_t th = get_GLU_thread() ;
     red[ LINE_NSTEPS + 2 + th*CLINE ] +=
-      fast_deriv_AntiHermitian_proj( sum , lat , i ) ;    
+      fast_deriv_AntiHermitian_proj_weighted( sum , lat , i , eps ) ;
 
     // make in anti-hermitian here!
     #if NC == 3
@@ -180,10 +181,11 @@ sum_DER3( double *red ,
 static void
 steep_Landau_FA( double *red ,
 		 struct site *lat ,
-		 struct fftw_stuff *FFTW )
+		 struct fftw_stuff *FFTW ,
+		 const double eps )
 {
   // do a steepest-descents step with the result in "out"
-  FA_deriv( red , FFTW -> in , lat ) ;
+  FA_deriv( red , FFTW -> in , lat , eps ) ;
   
   // and do the fourier acceleration
   FOURIER_ACCELERATE3( FFTW ) ;
@@ -204,7 +206,8 @@ steep_Landau_FASD( struct site *lat ,
 		   struct CGtemps *CG ,
 		   double *tr ,
 		   const double acc ,
-		   const size_t max_iters )
+		   const size_t max_iters ,
+		   const double eps )
 {
   size_t k , loc_iters = 0 ;
   
@@ -219,7 +222,7 @@ steep_Landau_FASD( struct site *lat ,
     CG -> red[k] = 0.0 ;
   }
   
-  steep_Landau_FA( CG -> red , lat , FFTW ) ;
+  steep_Landau_FA( CG -> red , lat , FFTW , eps ) ;
 
   double trAA = 0.0 ;
   for( k = 0 ; k < Latt.Nthreads ; k++ ) {
@@ -240,13 +243,14 @@ steep_Landau_FACG( struct site *lat ,
 		   struct CGtemps *CG ,
 		   double *tr ,
 		   const double acc ,
-		   const size_t max_iters )
+		   const size_t max_iters ,
+		   const double eps )
 {  
   size_t k , loc_iters = 0  ;
   double trAA = 0.0 , inold = 0.0 , insum = 0.0 , sum_conj = 0.0 ;
     
   // perform an SD start
-  steep_Landau_FA( CG -> red , lat , FFTW ) ;
+  steep_Landau_FA( CG -> red , lat , FFTW , eps ) ;
 
   for( k = 0 ; k < Latt.Nthreads ; k++ ) {
     trAA += CG -> red[ LINE_NSTEPS + 2 + k*CLINE ] ;
@@ -282,7 +286,7 @@ steep_Landau_FACG( struct site *lat ,
   }
   
   // this ONLY works with out and in, make sure that is what we use
-  FA_deriv( CG -> red , FFTW -> in , lat ) ;
+  FA_deriv( CG -> red , FFTW -> in , lat , eps ) ;
 
   // normalise the measure
   for( k = 0 ; k < Latt.Nthreads ; k++ ) {
@@ -342,11 +346,12 @@ FACG( struct site *lat ,
       struct fftw_stuff *FFTW ,
       double *th ,
       const double acc ,
-      const size_t max_iters )
+      const size_t max_iters ,
+      const double eps )
 {
   // set up the maximum and what have you
   GLU_real max ; 
-  *th = theta_test_lin( lat , &max , ND ) ; 
+  *th = theta_test_lin_weighted( lat , &max , ND , eps ) ;
   size_t iters = 0 ;
   
   // have the option to leave early before allocations
@@ -363,7 +368,7 @@ FACG( struct site *lat ,
     size_t loc_iters = 1 ;
   top :
     loc_iters = steep_Landau_FACG( lat , FFTW , &CG , th ,
-				   acc , max_iters ) ;
+				   acc , max_iters , eps ) ;
 
     #pragma omp master
     {
@@ -396,11 +401,12 @@ FASD( struct site *lat ,
       struct fftw_stuff *FFTW ,
       double *th ,
       const double acc ,
-      const size_t max_iters )
+      const size_t max_iters ,
+      const double eps )
 {
   // set up the maximum and what have you
   GLU_real max ; 
-  *th = theta_test_lin( lat , &max , ND ) ; 
+  *th = theta_test_lin_weighted( lat , &max , ND , eps ) ;
   size_t iters = 0 ;
   
   // have the option to leave early before allocations
@@ -417,7 +423,7 @@ FASD( struct site *lat ,
     size_t loc_iters = 1 ;    
   top :
     loc_iters = steep_Landau_FASD( lat , FFTW , &CG , th ,
-				   acc , max_iters ) ;
+				   acc , max_iters , eps ) ;
     
     if( loc_iters >= max_iters ) {
       if( ( *th < 1E3*acc ) ) {

@@ -63,6 +63,17 @@ latt_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
 			       const size_t MAX_DIR ) ;
 
 /**
+   @fn double latt_deriv_AntiHermitian_proj_weighted( GLU_complex sum[ HERMSIZE ] , const struct site *__restrict lat , const size_t i , const size_t MAX_DIR , const double eps )
+   @brief The lattice derivative with temporal contribution weighted by epsilon.
+ **/
+double
+latt_deriv_AntiHermitian_proj_weighted( GLU_complex sum[ HERMSIZE ] ,
+					const struct site *__restrict lat ,
+					const size_t i ,
+					const size_t MAX_DIR ,
+					const double eps ) ;
+
+/**
    @fn double fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] , const struct site *__restrict lat , const size_t i )
    @brief Slightly faster version of the 4D lattice lie field derivative
    @param sum :: The sum of the derivative \f$ \partial_\mu A_\mu(x) \f$
@@ -79,5 +90,15 @@ double
 fast_deriv_AntiHermitian_proj( GLU_complex sum[ HERMSIZE ] ,
 			       const struct site *__restrict lat , 
 			       const size_t i ) ;
+
+/**
+   @fn double fast_deriv_AntiHermitian_proj_weighted( GLU_complex sum[ HERMSIZE ] , const struct site *__restrict lat , const size_t i , const double eps )
+   @brief Faster 4D lattice lie field derivative with temporal contribution weighted by epsilon.
+ **/
+double
+fast_deriv_AntiHermitian_proj_weighted( GLU_complex sum[ HERMSIZE ] ,
+					const struct site *__restrict lat ,
+					const size_t i ,
+					const double eps ) ;
 
 #endif

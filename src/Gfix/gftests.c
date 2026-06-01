@@ -130,7 +130,8 @@ const_time( const struct site *__restrict lat ,
 
 // gauge fixing functional calculator, dependent on the derivative type...
 double
-gauge_functional( const struct site *__restrict lat )
+gauge_functional_weighted( const struct site *__restrict lat ,
+			   const double eps )
 {
   size_t i ;
   double trAA = 0.0 ;
@@ -139,11 +140,19 @@ gauge_functional( const struct site *__restrict lat )
     register double loc_tr = 0.0 ;
     size_t mu ;
     for( mu = 0 ; mu < ND ; mu++ ) {
-      loc_tr += (double)creal( trace( lat[i].O[mu] ) ) ;
+      const double weight = ( mu == ND - 1 ) ? eps : 1.0 ;
+      loc_tr += weight * (double)creal( trace( lat[i].O[mu] ) ) ;
     }
     trAA = trAA + (double)loc_tr ;
   }
-  return 1.0 - trAA / (double)( ND * NC * LVOLUME ) ;
+  return 1.0 - trAA / ( ( (double)ND - 1.0 + eps ) * NC * LVOLUME ) ;
+}
+
+// gauge fixing functional calculator, dependent on the derivative type...
+double
+gauge_functional( const struct site *__restrict lat )
+{
+  return gauge_functional_weighted( lat , 1.0 ) ;
 }
 
 //test the gauge transform matrices should tend to one so 1-Re( tr( G( x ) ) )->0
@@ -212,9 +221,10 @@ gtrans_functional( const struct site *__restrict lat ,
 
 //test3 the standard theta test tr[Delta.Delta^{dagger}]
 double
-theta_test_lin( const struct site *__restrict lat , 
-		GLU_real *max ,
-		const size_t MAX_DIR ) 
+theta_test_lin_weighted( const struct site *__restrict lat ,
+			 GLU_real *max ,
+			 const size_t MAX_DIR ,
+			 const double eps )
 {
   double tr = 0. ; 
   size_t i ; 
@@ -230,8 +240,9 @@ theta_test_lin( const struct site *__restrict lat ,
     for( mu = 0 ; mu < HERMSIZE ; mu++ ) {
       temp[ mu ] = 0.0 ;
     }
-    register double res = latt_deriv_AntiHermitian_proj( temp , lat , 
-							 i , MAX_DIR ) ; 
+    register double res = latt_deriv_AntiHermitian_proj_weighted( temp , lat ,
+								  i , MAX_DIR ,
+								  eps ) ;
     tr = tr + (double)res ; 
     #ifdef GLU_OMP_MEAS
     if( res > *max ) { 
@@ -249,11 +260,21 @@ theta_test_lin( const struct site *__restrict lat ,
   return 2. * tr / (double)( NC * LVOLUME ) ;
 }
 
+//test3 the standard theta test tr[Delta.Delta^{dagger}]
+double
+theta_test_lin( const struct site *__restrict lat , 
+		GLU_real *max ,
+		const size_t MAX_DIR ) 
+{
+  return theta_test_lin_weighted( lat , max , MAX_DIR , 1.0 ) ;
+}
+
 //test2 my test using log-def tr[Delta.Delta^{dagger}]
 double
-theta_test_log( const struct site *__restrict lat , 
-		GLU_real *max ,
-		const size_t MAX_DIR )
+theta_test_log_weighted( const struct site *__restrict lat ,
+			 GLU_real *max ,
+			 const size_t MAX_DIR ,
+			 const double eps )
 {
   double tr = 0. ; 
   size_t i ; 
@@ -270,8 +291,8 @@ theta_test_log( const struct site *__restrict lat ,
       temp[ mu ] = 0.0 ;
     }
     double functional ;
-    register const double res = log_deriv( temp , &functional , lat ,
-					   i , MAX_DIR ) ; 
+    register const double res = log_deriv_weighted( temp , &functional , lat ,
+						    i , MAX_DIR , eps ) ;
     tr = tr + (double)res ; 
     #ifdef GLU_OMP_MEAS
     if( res > *max ) { 
@@ -287,6 +308,15 @@ theta_test_log( const struct site *__restrict lat ,
   omp_destroy_lock( &writelock ) ;
   #endif
   return 2. * tr / ( NC * LVOLUME ) ; 
+}
+
+//test2 my test using log-def tr[Delta.Delta^{dagger}]
+double
+theta_test_log( const struct site *__restrict lat , 
+		GLU_real *max ,
+		const size_t MAX_DIR )
+{
+  return theta_test_log_weighted( lat , max , MAX_DIR , 1.0 ) ;
 }
 
 // and clean it up

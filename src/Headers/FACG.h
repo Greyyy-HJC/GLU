@@ -38,7 +38,8 @@ FACG( struct site *lat ,
       struct fftw_stuff *FFTW ,
       double *th ,
       const double acc ,
-      const size_t max_iters ) ;
+      const size_t max_iters ,
+      const double eps ) ;
 
 /**
    @fn size_t FASD( struct site *lat , struct fftw_stuff *FFTW , double *th , const double acc , const size_t max_iters )
@@ -55,6 +56,7 @@ FASD( struct site *lat ,
       struct fftw_stuff *FFTW ,
       double *th ,
       const double acc ,
-      const size_t max_iters ) ;
+      const size_t max_iters ,
+      const double eps ) ;
 
 #endif

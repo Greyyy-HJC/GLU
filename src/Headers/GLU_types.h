@@ -154,11 +154,13 @@ struct gauges {
    @brief gauge fixing information storage
    @param max_iters :: maximum iterations before we restart
    @param accuracy :: gauge fixing accuracy we try to meet 1E-20 is good
+   @param gf_epsilon :: temporal-derivative weight for interpolating gauge fixing
    @param type :: enumerated (LANDAU,COULOMB)
  */
 struct gf_info {
   size_t max_iters ; // maximum iterations of the gauge fixing routine
   double accuracy ; // average accuracy to be used 
+  double gf_epsilon ; // temporal derivative weight for interpolating gauge fixing
   GLU_fixing type ; // type of gauge fixing used, coulomb or landau?
 } ;
 
